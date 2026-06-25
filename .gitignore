@@ -7,9 +7,9 @@ __pycache__/
 *.pyc
 *.pyo
 
-# ONNX / PyTorch exports (stored in data/, but just in case)
-*.onnx
+# PyTorch weights (large, regenerate from train.py)
 *.pt
+data/model.onnx.data
 
 # Jupyter
 .ipynb_checkpoints/
