@@ -1,0 +1,26 @@
+# Generated data and model weights
+data/
+
+# Python virtual environments
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
+# ONNX / PyTorch exports (stored in data/, but just in case)
+*.onnx
+*.pt
+
+# Jupyter
+.ipynb_checkpoints/
+
+# macOS
+.DS_Store
+__MACOSX/
+
+# Editor
+.vscode/
+.idea/
+
+# uv
+.python-version
