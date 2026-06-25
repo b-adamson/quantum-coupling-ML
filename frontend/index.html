@@ -63,7 +63,7 @@
     <button class="btn-primary" id="predict_btn" onclick="predict()">Predict</button>
   </div>
 
-  <p style="font-size:0.78rem;color:#555;margin-bottom:8px;">N&times;N 2D array of current measurements, one row per gate voltage V&#x2081; step.</p>
+  <p style="font-size:0.78rem;color:#555;margin-bottom:8px;">N&times;N array of sensor signal values swept over a 2D gate voltage grid (V&#x2081;, V&#x2082;).</p>
   <textarea id="array_input" placeholder="Paste a 2D array here e.g. [[0.1, 0.2, ...], ...]" style="width:100%;height:80px;margin-bottom:12px;padding:10px;background:#0d0d0d;color:#eee;border:1px solid #333;border-radius:6px;font-family:monospace;font-size:0.75rem;resize:vertical;" oninput="handleInput(this.value)"></textarea>
 
   <canvas id="heatmap" width="64" height="64"></canvas>

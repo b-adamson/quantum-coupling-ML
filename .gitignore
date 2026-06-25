@@ -7,9 +7,9 @@ __pycache__/
 *.pyc
 *.pyo
 
-# PyTorch weights (large, regenerate from train.py)
+# PyTorch weights and large data files (regenerate from train.py)
 *.pt
-data/model.onnx.data
+data/
 
 # Jupyter
 .ipynb_checkpoints/
