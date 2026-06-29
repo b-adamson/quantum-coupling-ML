@@ -20,12 +20,12 @@ class CSDDataset(Dataset):
             self.signals = torch.tensor(np.array(f["signals"]), dtype=torch.float32)
             self.labels = torch.tensor(np.array(f["labels"]), dtype=torch.float32)
 
-        # Normalise signals to zero mean, unit std per sample
-        mean = self.signals.mean(dim=(-2, -1), keepdim=True)
-        std = self.signals.std(dim=(-2, -1), keepdim=True).clamp(min=1e-6)
+        # Normalise per sample to zero mean, unit std
+        mean = self.signals.mean(dim=-1, keepdim=True)
+        std = self.signals.std(dim=-1, keepdim=True).clamp(min=1e-6)
         self.signals = (self.signals - mean) / std
 
-        # Add channel dim: (N, 1, H, W)
+        # Add channel dim: (N, 1, L)
         self.signals = self.signals.unsqueeze(1)
 
     def __len__(self):
@@ -39,22 +39,24 @@ class CouplingCNN(nn.Module):
     def __init__(self):
         super().__init__()
         self.features = nn.Sequential(
-            nn.Conv2d(1, 16, kernel_size=3, padding=1), nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(16, 32, kernel_size=3, padding=1), nn.ReLU(),
-            nn.MaxPool2d(2),
-            nn.Conv2d(32, 64, kernel_size=3, padding=1), nn.ReLU(),
-            nn.AdaptiveAvgPool2d(1),
+            nn.Conv1d(1, 16, kernel_size=7, padding=3), nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Conv1d(16, 32, kernel_size=5, padding=2), nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Conv1d(32, 64, kernel_size=3, padding=1), nn.ReLU(),
+            nn.MaxPool1d(2),
         )
+        # After 3x MaxPool1d(2) on grid_size=64: 64/8 = 8 spatial positions
         self.head = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(64, 32),
+            nn.Linear(64 * 8, 128),
             nn.ReLU(),
-            nn.Linear(32, 1),
+            nn.Linear(128, 1),
+            nn.Sigmoid(),
         )
 
     def forward(self, x):
-        return self.head(self.features(x)).squeeze(1)
+        return self.head(self.features(x)).squeeze(1) * 0.15
 
 
 def train(data_path: str, epochs: int, batch_size: int, lr: float, save_path: str):
@@ -88,13 +90,19 @@ def train(data_path: str, epochs: int, batch_size: int, lr: float, save_path: st
 
         model.eval()
         val_loss = 0.0
+        all_preds = []
         with torch.no_grad():
             for x, y in val_loader:
                 x, y = x.to(device), y.to(device)
-                val_loss += loss_fn(model(x), y).item() * len(y)
+                preds = model(x)
+                val_loss += loss_fn(preds, y).item() * len(y)
+                all_preds.append(preds.cpu())
         val_loss /= n_val
+        preds_cat = torch.cat(all_preds)
+        pred_std = preds_cat.std().item()
+        pred_mean = preds_cat.mean().item()
 
-        print(f"Epoch {epoch:3d}/{epochs}  train_loss={train_loss:.5f}  val_loss={val_loss:.5f}")
+        print(f"Epoch {epoch:3d}/{epochs}  train_loss={train_loss:.5f}  val_loss={val_loss:.5f}  pred_mean={pred_mean:.4f}  pred_std={pred_std:.4f}")
 
     torch.save(model.state_dict(), save_path)
     print(f"Model saved to {save_path}")
@@ -105,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument("--data", type=str, default="../data/dataset.h5")
     parser.add_argument("--epochs", type=int, default=50)
     parser.add_argument("--batch_size", type=int, default=64)
-    parser.add_argument("--lr", type=float, default=1e-3)
+    parser.add_argument("--lr", type=float, default=1e-4)
     parser.add_argument("--save", type=str, default="../data/model.pt")
     args = parser.parse_args()
 

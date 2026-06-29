@@ -2,7 +2,7 @@
 FastAPI backend — POST /predict returns tunnel coupling t.
 
 Expected input:
-    { "signal": [[...], [...], ...] }   # 2D array, shape (N, N)
+    { "signal": [...] }   # 1D array, shape (N,)
 
 Returns:
     { "t": 0.043 }
@@ -38,7 +38,7 @@ def get_session() -> ort.InferenceSession:
 
 
 class PredictRequest(BaseModel):
-    signal: list[list[float]]
+    signal: list[float]
 
 
 class PredictResponse(BaseModel):
@@ -49,15 +49,15 @@ class PredictResponse(BaseModel):
 def predict(req: PredictRequest):
     arr = np.array(req.signal, dtype=np.float32)
 
-    if arr.ndim != 2 or arr.shape[0] != arr.shape[1]:
-        raise HTTPException(status_code=422, detail="signal must be a square 2D array")
+    if arr.ndim != 1:
+        raise HTTPException(status_code=422, detail="signal must be a 1D array")
 
     # Normalise
     mean, std = arr.mean(), arr.std()
     arr = (arr - mean) / max(std, 1e-6)
 
-    # Shape: (1, 1, N, N)
-    x = arr[np.newaxis, np.newaxis, :, :]
+    # Shape: (1, 1, L)
+    x = arr[np.newaxis, np.newaxis, :]
 
     session = get_session()
     t_val = float(session.run(["coupling"], {"signal": x})[0][0])
@@ -68,7 +68,7 @@ def predict(req: PredictRequest):
 SAMPLE_PATH = os.environ.get("SAMPLE_PATH", "../data/dataset.h5")
 
 class SampleResponse(BaseModel):
-    signal: list[list[float]]
+    signal: list[float]
     true_t: float
 
 

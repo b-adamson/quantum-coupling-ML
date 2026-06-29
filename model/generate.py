@@ -1,5 +1,5 @@
 """
-Generate training data: random double-dot parameters → (N×N sensor signal, t).
+Generate training data: random double-dot parameters → (grid_size sensor signal, t).
 Output saved to ../data/dataset.h5
 
 Usage:
@@ -41,41 +41,34 @@ def random_t(key, t_min=0.0, t_max=0.15):
     return t_mat, float(t_val), key
 
 
-def make_voltage_grid(grid_size: int):
-    vg = jnp.stack(
-        jnp.meshgrid(
-            jnp.linspace(-3, 0, grid_size),
-            jnp.linspace(-3, 0, grid_size),
-        ),
-        axis=-1,
-    )
-    return vg
-
-
-def simulate_one(cdd, cdg, t_mat, vg):
-    model = DotArray(n_dots=2, n_gates=2, cdd=cdd, cdg=cdg, t=t_mat)
-
+def simulate_one(cdd, cdg, t_mat, grid_size):
     charge_sensor = ChargeSensor(
         n_dots=2,
         n_gates=2,
         n_sensor=1,
-        csd=jnp.array([0.1, 0.02]),
-        csg=-jnp.array([0.5, 0.15]),
-        pink_noise_std=0.01,
-        white_noise_std=0.005,
+        csd=jnp.array([0.02, 0.1]),
+        csg=-jnp.array([0.3, 0.3]),
+        pink_noise_std=0.0,
+        white_noise_std=0.0,
     )
 
+    model = DotArray(n_dots=2, n_gates=2, cdd=cdd, cdg=cdg, t=t_mat)
+
+    # Park at the (1,0)↔(0,1) interdot transition then sweep detuning
+    v0 = model.optimal_vg([0.5, 0.5])
+    eps = jnp.linspace(-0.5, 0.5, grid_size)
+    vg = v0[None, :] + jnp.stack([eps / 2, -eps / 2], axis=-1)
+
     result = model.tunnel_coupled_ground_state(vg, charge_sensor=charge_sensor)
-    return np.array(result.sensor)  # shape (grid_size, grid_size)
+    return np.array(result.sensor).squeeze().astype(np.float32)
 
 
 def generate(n_samples: int, grid_size: int, out_path: str, seed: int = 42):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
-    vg = make_voltage_grid(grid_size)
     key = random.PRNGKey(seed)
 
-    signals = np.zeros((n_samples, grid_size, grid_size), dtype=np.float32)
+    signals = np.zeros((n_samples, grid_size), dtype=np.float32)
     labels = np.zeros((n_samples,), dtype=np.float32)
 
     for i in range(n_samples):
@@ -83,8 +76,8 @@ def generate(n_samples: int, grid_size: int, out_path: str, seed: int = 42):
         cdg, key = random_cdg(key)
         t_mat, t_val, key = random_t(key)
 
-        signal = simulate_one(cdd, cdg, t_mat, vg)
-        signals[i] = signal.squeeze()
+        signal = simulate_one(cdd, cdg, t_mat, grid_size)
+        signals[i] = signal
         labels[i] = t_val
 
         if (i + 1) % 100 == 0:
