@@ -1,15 +1,13 @@
-# Generated data and model weights
-data/
-
 # Python virtual environments
 .venv/
 __pycache__/
 *.pyc
 *.pyo
 
-# PyTorch weights and large data files (regenerate from train.py)
-*.pt
-data/
+# Large model/data files (regenerate locally)
+data/model.pt
+data/model.onnx
+data/*.png
 
 # Jupyter
 .ipynb_checkpoints/
