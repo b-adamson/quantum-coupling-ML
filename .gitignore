@@ -24,6 +24,9 @@ __MACOSX/
 # uv
 .python-version
 
+# Local dev notes, not for the repo
+dev.md
+
 # Vendored QArray-plus: only qarray_plus/ (the runtime package) is deployed;
 # upstream dev cruft is not needed and shouldn't be committed.
 QArray-plus/.git-vendored-backup/
