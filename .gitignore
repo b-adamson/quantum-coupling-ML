@@ -7,6 +7,7 @@ __pycache__/
 # Large model/data files (regenerate locally)
 data/model.pt
 data/model.onnx
+data/simulate_lut.npz
 data/*.png
 
 # Jupyter
@@ -22,3 +23,13 @@ __MACOSX/
 
 # uv
 .python-version
+
+# Vendored QArray-plus: only qarray_plus/ (the runtime package) is deployed;
+# upstream dev cruft is not needed and shouldn't be committed.
+QArray-plus/.git-vendored-backup/
+QArray-plus/examples/
+QArray-plus/tests/
+QArray-plus/*.egg-info/
+QArray-plus/.venv/
+QArray-plus/.pytest_cache/
+QArray-plus/.claude/
