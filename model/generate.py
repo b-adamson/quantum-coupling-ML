@@ -27,10 +27,17 @@ def random_t(key, t_min=0.0, t_max=0.15):
     t_mat = jnp.array([[0.0, t_val], [t_val, 0.0]])
     return t_mat, float(t_val), key
 
-def random_noise_std(key, noise_min=0.0, noise_max=0.1):
+def random_noise_std(key, noise_min=0.0, noise_max=0.01):
     key, subkey = random.split(key)
     noise_std = random.uniform(subkey, shape=(), minval=noise_min, maxval=noise_max)
     return float(noise_std), key
+
+def random_slope(key, slope_min=-0.05, slope_max=0.05):
+    # A slight linear background tilt, so the flat wings far from the
+    # interdot transition aren't perfectly flat, mimicking cross-talk/drift.
+    key, subkey = random.split(key)
+    slope = random.uniform(subkey, shape=(), minval=slope_min, maxval=slope_max)
+    return float(slope), key
 
 def simulate_one(cdd, cdg, t_mat, grid_size, noise_std):
     charge_sensor = ChargeSensor(
@@ -61,6 +68,7 @@ def generate(n_samples: int, grid_size: int, out_path: str, seed: int = 42):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
 
     key = random.PRNGKey(seed)
+    eps_grid = np.linspace(-0.5, 0.5, grid_size, dtype=np.float32)
 
     signals = np.zeros((n_samples, grid_size), dtype=np.float32)
     labels = np.zeros((n_samples,), dtype=np.float32)
@@ -70,8 +78,10 @@ def generate(n_samples: int, grid_size: int, out_path: str, seed: int = 42):
         cdg, key = random_cdg(key)
         t_mat, t_val, key = random_t(key)
         noise_std, key = random_noise_std(key)
+        slope, key = random_slope(key)
 
         signal = simulate_one(cdd, cdg, t_mat, grid_size, noise_std)
+        signal = signal + slope * eps_grid
         signals[i] = signal
         labels[i] = t_val
 

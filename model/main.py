@@ -13,15 +13,16 @@ from train import CouplingCNN
 
 # ============================== parameters ==================================
 
-MODE = "sample"  # "build" = simulate a device from the params below
+MODE = "build"  # "build" = simulate a device from the params below
                 # "sample" = pull an entry out of dataset.h5
 
 # MODE = "build":
-T = 0.1        # (0 to 0.15)
+T = 0.1               # (0 to 0.15)
 CDD_OFF = 0.08        # (0.01 to 0.15)
 CDG_CROSS0 = 0.10     # (0.05 to 0.2)
 CDG_CROSS1 = 0.10     # (0.05 to 0.2)
-NOISE_STD = 0.0       # sensor noise
+NOISE_STD = 0.0       # sensor noise (0 to 0.02)
+SLOPE = 0.0           # linear background slope
 
 #          [        1  ,  -cdd_off ]           [    -1     ,  -cdg_cross0 ]           [ 0 ,  t ]
 #   cdd =  [                       ]     cdg = [                          ]     t =   [        ]
@@ -34,7 +35,7 @@ DATASET_PATH = "../data/dataset.h5"
 # ==============================================================================
 
 
-def simulate(t, cdd_off, cdg_cross0, cdg_cross1, noise_std):
+def simulate(t, cdd_off, cdg_cross0, cdg_cross1, noise_std, slope=0.0):
     cdd = jnp.array([[1.0, -cdd_off], [-cdd_off, 1.0]])
     cdg = -jnp.array([[1.0, cdg_cross0], [cdg_cross1, 1.0]])
     t_mat = jnp.array([[0.0, t], [t, 0.0]])
@@ -56,7 +57,8 @@ def simulate(t, cdd_off, cdg_cross0, cdg_cross1, noise_std):
 
     # result.sensor is (64,1) array of sensor outputs
     result = model.tunnel_coupled_ground_state(vg, charge_sensor=charge_sensor)
-    return np.array(result.sensor).squeeze().astype(np.float32)
+    signal = np.array(result.sensor).squeeze().astype(np.float32)
+    return signal + slope * np.array(eps, dtype=np.float32)
 
 
 def load_random_sample():
@@ -83,7 +85,7 @@ def predict(signal):
 
 def main():
     if MODE == "build":
-        signal = simulate(T, CDD_OFF, CDG_CROSS0, CDG_CROSS1, NOISE_STD)
+        signal = simulate(T, CDD_OFF, CDG_CROSS0, CDG_CROSS1, NOISE_STD, SLOPE)
         true_t = T
     elif MODE == "sample":
         signal, true_t = load_random_sample()
