@@ -1,9 +1,3 @@
-"""
-Visualise 1D detuning sweeps for different tunnel couplings.
-
-Usage:
-    python visualise.py
-"""
 
 import jax.numpy as jnp
 import matplotlib.pyplot as plt
@@ -50,7 +44,7 @@ slopes = [abs(tr[mid + 1] - tr[mid - 1]) / deps for tr in traces]
 
 fig, axes = plt.subplots(1, 2, figsize=(12, 5))
 
-# --- Plot 1: overlaid I(ε) traces ---
+# Plot 1: overlaid I(ε) traces ---
 cmap = cm.plasma
 colours = [cmap(i / max(len(T_VALUES) - 1, 1)) for i in range(len(T_VALUES))]
 
@@ -64,7 +58,7 @@ ax.set_ylabel("Sensor signal  I(ε)")
 ax.set_title("Detuning sweep through interdot transition")
 ax.legend(fontsize=9)
 
-# --- Plot 2: slope at ε=0 vs t ---
+# Plot 2: slope at ε=0 vs t
 ax = axes[1]
 ax.plot(T_VALUES, slopes, "o-", color="steelblue", linewidth=2, markersize=7)
 ax.set_xlabel("Tunnel coupling  t")

@@ -1,11 +1,3 @@
-"""
-Generate training data: random double-dot parameters → (grid_size sensor signal, t).
-Output saved to ../data/dataset.h5
-
-Usage:
-    python generate.py --n_samples 5000 --grid_size 64
-"""
-
 import argparse
 import os
 
@@ -18,50 +10,52 @@ from qarray_plus import DotArray, ChargeSensor
 
 
 def random_cdd(key):
-    """Maxwell capacitance matrix for 2 dots: diagonal >> off-diagonal."""
     key, subkey = random.split(key)
     off = random.uniform(subkey, shape=(), minval=0.01, maxval=0.15)
     cdd = jnp.array([[1.0, -off], [-off, 1.0]])
     return cdd, key
 
-
 def random_cdg(key):
-    """Gate-to-dot capacitance: strong diagonal, weak cross-coupling."""
     key, subkey = random.split(key)
     cross = random.uniform(subkey, shape=(2,), minval=0.05, maxval=0.2)
     cdg = -jnp.array([[1.0, cross[0]], [cross[1], 1.0]])
     return cdg, key
 
-
 def random_t(key, t_min=0.0, t_max=0.15):
-    """Scalar interdot tunnel coupling."""
     key, subkey = random.split(key)
     t_val = random.uniform(subkey, shape=(), minval=t_min, maxval=t_max)
     t_mat = jnp.array([[0.0, t_val], [t_val, 0.0]])
     return t_mat, float(t_val), key
 
+def random_noise_std(key, noise_min=0.0, noise_max=0.1):
+    key, subkey = random.split(key)
+    noise_std = random.uniform(subkey, shape=(), minval=noise_min, maxval=noise_max)
+    return float(noise_std), key
 
-def simulate_one(cdd, cdg, t_mat, grid_size):
+def simulate_one(cdd, cdg, t_mat, grid_size, noise_std):
     charge_sensor = ChargeSensor(
         n_dots=2,
         n_gates=2,
         n_sensor=1,
         csd=jnp.array([0.02, 0.1]),
         csg=-jnp.array([0.3, 0.3]),
-        pink_noise_std=0.0,
-        white_noise_std=0.0,
+        pink_noise_std=noise_std,
+        white_noise_std=noise_std,
     )
 
     model = DotArray(n_dots=2, n_gates=2, cdd=cdd, cdg=cdg, t=t_mat)
 
-    # Park at the (1,0)↔(0,1) interdot transition then sweep detuning
     v0 = model.optimal_vg([0.5, 0.5])
+    v0_gate1, v0_gate2 = v0[0], v0[1]
+
     eps = jnp.linspace(-0.5, 0.5, grid_size)
-    vg = v0[None, :] + jnp.stack([eps / 2, -eps / 2], axis=-1)
+    gate1_voltages = v0_gate1 + eps / 2 
+    gate2_voltages = v0_gate2 - eps / 2  
+
+    vg = jnp.stack([gate1_voltages, gate2_voltages], axis=-1) 
 
     result = model.tunnel_coupled_ground_state(vg, charge_sensor=charge_sensor)
     return np.array(result.sensor).squeeze().astype(np.float32)
-
 
 def generate(n_samples: int, grid_size: int, out_path: str, seed: int = 42):
     os.makedirs(os.path.dirname(out_path), exist_ok=True)
@@ -75,8 +69,9 @@ def generate(n_samples: int, grid_size: int, out_path: str, seed: int = 42):
         cdd, key = random_cdd(key)
         cdg, key = random_cdg(key)
         t_mat, t_val, key = random_t(key)
+        noise_std, key = random_noise_std(key)
 
-        signal = simulate_one(cdd, cdg, t_mat, grid_size)
+        signal = simulate_one(cdd, cdg, t_mat, grid_size, noise_std)
         signals[i] = signal
         labels[i] = t_val
 

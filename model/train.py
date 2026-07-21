@@ -1,9 +1,4 @@
-"""
-Train a small CNN to predict tunnel coupling t from a 2D sensor signal.
 
-Usage:
-    python train.py --data ../data/dataset.h5 --epochs 50
-"""
 
 import argparse
 
