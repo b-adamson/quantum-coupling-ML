@@ -6,6 +6,13 @@ import numpy as np
 
 from qarray_plus import DotArray, ChargeSensor
 
+# qarray_plus's ε and t are dimensionless (a fraction of the charging energy
+# E_C -- dot self-capacitance is normalised to 1.0). There's no real E_C in
+# the simulator itself, so to show them in meV we have to assume one. 1 meV
+# is a typical charging energy for a GaAs double quantum dot -- change this
+# if you're modelling a specific device with a known/measured E_C.
+E_C_MEV = 1.0
+
 GRID_SIZE = 200
 T_VALUES = [0.0, 0.02, 0.05, 0.08, 0.12, 0.15]
 
@@ -75,34 +82,37 @@ fig, axes = plt.subplots(1, 3, figsize=(17, 5))
 cmap = cm.plasma
 colours = [cmap(i / max(len(T_VALUES) - 1, 1)) for i in range(len(T_VALUES))]
 
+eps_mev = eps * E_C_MEV
+
 ax = axes[0]
 for t_val, trace, colour in zip(T_VALUES, traces, colours):
-    ax.plot(eps, trace, label=f"t = {t_val:.2f}", color=colour, linewidth=1.8)
+    ax.plot(eps_mev, trace, label=f"t = {t_val:.2f}", color=colour, linewidth=1.8)
 
 ax.axvline(0, color="grey", linewidth=0.7, linestyle="--")
-ax.set_xlabel("Detuning  ε  (arb. units)")
+ax.set_xlabel(f"Detuning  ε  (meV, assuming E_C = {E_C_MEV:.1f} meV)")
 ax.set_ylabel("Sensor signal  I(ε)")
 ax.set_title("Detuning sweep through interdot transition")
 ax.legend(fontsize=9)
 
 # Plot 2: slope at ε=0 vs t
 ax = axes[1]
-ax.plot(T_VALUES, slopes, "o-", color="steelblue", linewidth=2, markersize=7)
-ax.set_xlabel("Tunnel coupling  t")
+t_mev = np.array(T_VALUES) * E_C_MEV
+ax.plot(t_mev, slopes, "o-", color="steelblue", linewidth=2, markersize=7)
+ax.set_xlabel(f"Tunnel coupling  t  (meV, assuming E_C = {E_C_MEV:.1f} meV)")
 ax.set_ylabel("|dI/dε| at ε = 0")
 ax.set_title("Slope at transition centre vs tunnel coupling")
 
 # Plot 3: clean vs. noisy/tilted realisations at a fixed t
 ax = axes[2]
-ax.plot(eps, clean_trace, color="black", linewidth=2.2, label="clean", zorder=5)
+ax.plot(eps_mev, clean_trace, color="black", linewidth=2.2, label="clean", zorder=5)
 noisy_cmap = cm.viridis
 for i, (signal, noise_std, slope) in enumerate(noisy_traces):
     colour = noisy_cmap(i / max(N_REALISATIONS - 1, 1))
-    ax.plot(eps, signal, color=colour, linewidth=1.1, alpha=0.8,
+    ax.plot(eps_mev, signal, color=colour, linewidth=1.1, alpha=0.8,
             label=f"noise={noise_std:.3f}, slope={slope:+.2f}")
 
 ax.axvline(0, color="grey", linewidth=0.7, linestyle="--")
-ax.set_xlabel("Detuning  ε  (arb. units)")
+ax.set_xlabel(f"Detuning  ε  (meV, assuming E_C = {E_C_MEV:.1f} meV)")
 ax.set_ylabel("Sensor signal  I(ε)")
 ax.set_title(f"Noisy/tilted realisations (t = {NOISY_T:.2f})")
 ax.legend(fontsize=7)
