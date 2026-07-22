@@ -18,8 +18,8 @@ T = 0.1               # (0 to 0.15)
 CDD_OFF = 0.08        # (0.01 to 0.15)
 CDG_CROSS0 = 0.10     # (0.05 to 0.2)
 CDG_CROSS1 = 0.10     # (0.05 to 0.2)
-NOISE_STD = 0.000       # sensor noise (0 to 0.02)
-SLOPE = 0.00           # linear background slope (0 to 0.03)
+NOISE_STD = 0.000     # sensor noise (0 to 0.02)
+SLOPE = 0.00          # linear background slope (0 to 0.03)
 
 #          [        1  ,  -cdd_off ]           [    -1     ,  -cdg_cross0 ]           [ 0 ,  t ]
 #   cdd =  [                       ]     cdg = [                          ]     t =   [        ]
